@@ -1,365 +1,365 @@
-# Spring Boot Microservice Runbook: 
+# DOCT-c360-api Runbook
 
 ## 1. Overview
-This runbook provides operational procedures for Spring Boot microservices in production environments. It covers deployment, monitoring, troubleshooting, and maintenance procedures.
+**Service Name:** DOCT-c360-api  
+**Description:** Customer 360 Profile API supporting low-latency, real-time business use cases  
+**Version:** 1.0.2-SNAPSHOT  
+**Technology Stack:** Spring Boot 3.5.3, Java 17, MongoDB, Redis, Azure Key Vault  
 
-## 2. Service Information
+## 2. Prerequisites
 
-### 2.1 Basic Details
-- **Service Name**: `[Service Name]`
-- **Version**: `[Current Version]`
-- **Port**: `[Service Port]`
-- **Environment**: `[Prod/Staging/Dev]`
-- **Repository**: `[Git Repository URL]`
-- **Team Contact**: `[Team Email/Slack Channel]`
+### 2.1 Software Requirements
+- **Java:** JDK 17 or higher
+- **Maven:** 3.6+ (for local builds)
+- **Docker:** (optional, for containerized deployment)
+- **Azure CLI:** (for accessing Azure resources)
+- **MongoDB:** 4.4+ (external dependency)
+- **Redis:** 6.0+ with cluster support (external dependency)
 
-### 2.2 Dependencies
-```
-[Upstream Services]:
-- Service A: [Version/Endpoint]
-- Service B: [Version/Endpoint]
-
-[Downstream Services]:
-- Database: [Type/Cluster]
-- Message Broker: [Type/Cluster]
-- External APIs: [List]
-```
-
-## 3. Deployment Procedures
-
-### 3.1 Pre-Deployment Checklist
-- [ ] Code review completed
-- [ ] All tests passed (unit, integration, security)
-- [ ] Performance tests completed
-- [ ] Database migrations ready (if applicable)
-- [ ] Configuration updated for target environment
-- [ ] Dependencies verified
-- [ ] Rollback plan documented
-- [ ] Stakeholders notified
-
-### 3.2 Deployment Steps
-
-#### Blue-Green Deployment
+### 2.2 Environment Variables Required
 ```bash
-# Deploy new version (green environment)
-./deploy.sh --environment green --version [NEW_VERSION]
-
-# Run health checks
-curl -X GET http://green-instance:port/actuator/health
-
-# Switch traffic (update load balancer)
-./switch-traffic.sh --to green
-
-# Monitor for 15 minutes
-./monitor-metrics.sh --duration 15m
-
-# If stable, decommission old version (blue)
-./shutdown.sh --environment blue
+export MONGODB_URL="mongodb://your-mongo-connection-string"
+export C360_REDIS_HOST="redis-host"
+export C360_REDIS_PORT="6379"
+export C360_REDIS_ACCESS_KEY="redis-password"
+export C360_REDIS_TTL="6000000"
+export C360_REDIS_SWITCH="true"
+export C360_REDIS_NODES="node1:port,node2:port"
 ```
 
-#### Canary Deployment
+## 3. Build Process
+
+### 3.1 Local Development Build
 ```bash
-# Deploy to 10% of instances
-./deploy-canary.sh --percentage 10 --version [NEW_VERSION]
+# Clone repository
+git clone <repository-url>
+cd doct-c360-api
 
-# Monitor canary metrics
-./monitor-canary.sh --duration 30m
+# Build with Maven
+mvn clean install -DskipTests
 
-# If metrics acceptable, roll out to 50%
-./expand-deployment.sh --percentage 50
+# Build with tests
+mvn clean install
 
-# Monitor again, then full deployment
-./expand-deployment.sh --percentage 100
+# Run tests only
+mvn test
+
+# Generate JaCoCo coverage report
+mvn jacoco:report
 ```
 
-### 3.3 Rollback Procedure
-```bash
-# Immediately if critical issues detected
-./rollback.sh --to-version [PREVIOUS_VERSION]
+### 3.2 CI/CD Pipeline Build
+The service uses Maven with the following key plugins:
+- **Spring Boot Maven Plugin:** For packaging executable JAR
+- **JaCoCo Maven Plugin:** For code coverage reporting
+- **Maven Surefire Plugin:** For unit tests
 
-# Steps:
-# 1. Stop new version
-# 2. Restore previous version
-# 3. Verify health
-# 4. Notify team
+**Build Command:**
+```bash
+mvn clean package -DskipTests -Pprod
 ```
 
-## 4. Monitoring & Alerts
-
-### 4.1 Health Checks
+**SonarQube Integration:**
 ```bash
-# Basic health
+mvn sonar:sonar
+```
+
+## 4. Deployment
+
+### 4.1 Configuration Management
+
+#### 4.1.1 Azure Key Vault Integration
+- Configuration properties are stored in Azure Key Vault
+- Secrets are injected during CI/CD pipeline execution
+- Supported properties (see `application.yaml`):
+  - `mongodb-url`
+  - `c360-redis-host`, `c360-redis-port`, `c360-redis-access-key`
+  - `c360-redis-ttl`, `c360-redis-switch`, `c360-redis-nodes`
+
+#### 4.1.2 Profile Configuration
+- **Active Profile:** `prod` (set via `spring.profiles.active`)
+- **Configuration File:** `application.yaml` (prod-specific configuration)
+
+### 4.2 Deployment Methods
+
+#### 4.2.1 Standalone JAR Deployment
+```bash
+# Build executable JAR
+mvn clean package -DskipTests -Pprod
+
+# Run application
+java -jar target/doct-c360-api-1.0.2-SNAPSHOT.jar \
+  --spring.config.location=classpath:application.yaml \
+  --spring.profiles.active=prod
+```
+
+#### 4.2.2 Docker Container Deployment
+```dockerfile
+# Sample Dockerfile (not provided but recommended)
+FROM openjdk:17-jdk-slim
+COPY target/doct-c360-api-1.0.2-SNAPSHOT.jar app.jar
+ENTRYPOINT ["java", "-jar", "/app.jar"]
+```
+
+#### 4.2.3 Kubernetes Deployment (Recommended for Production)
+```yaml
+# Sample Kubernetes deployment manifest
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: doct-c360-api
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: doct-c360-api
+  template:
+    metadata:
+      labels:
+        app: doct-c360-api
+    spec:
+      containers:
+      - name: doct-c360-api
+        image: doct-c360-api:1.0.2
+        ports:
+        - containerPort: 8080
+        env:
+        - name: SPRING_PROFILES_ACTIVE
+          value: "prod"
+        - name: MONGODB_URL
+          valueFrom:
+            secretKeyRef:
+              name: c360-secrets
+              key: mongodb-url
+        # Additional environment variables from Azure Key Vault
+```
+
+## 5. Service Startup & Validation
+
+### 5.1 Startup Sequence
+1. **Check dependencies:** MongoDB and Redis connectivity
+2. **Load configuration:** From Azure Key Vault and application.yaml
+3. **Initialize components:**
+   - MongoDB repositories
+   - Redis cache configuration
+   - WebFlux reactive web server
+4. **Start application:** On port 8080 (configurable)
+
+### 5.2 Health Check Endpoints
+```bash
+# Health check
 curl http://localhost:8080/actuator/health
 
-# Detailed health with components
-curl http://localhost:8080/actuator/health/{component}
+# Info endpoint
+curl http://localhost:8080/actuator/info
 
-# Custom health endpoint
-curl http://localhost:8080/api/v1/health
+# Metrics (Prometheus format)
+curl http://localhost:8080/actuator/prometheus
+
+# API Documentation (OpenAPI/Swagger)
+curl http://localhost:8080/v3/api-docs
 ```
 
-### 4.2 Key Metrics to Monitor
-| Metric | Threshold | Alert Channel | Response Time |
-|--------|-----------|---------------|---------------|
-| CPU Usage | > 80% for 5min | PagerDuty | 15 minutes |
-| Memory Usage | > 85% for 5min | Slack | 15 minutes |
-| Error Rate | > 5% for 2min | PagerDuty | 5 minutes |
-| Response Time (p95) | > 2s for 5min | Slack | 30 minutes |
-| JVM GC Pauses | > 1s frequency | Slack | 60 minutes |
-
-### 4.3 Log Aggregation
+### 5.3 Service Validation
 ```bash
-# Search recent errors
-kubectl logs deployment/[service-name] --tail=100 | grep ERROR
+# Test API endpoints
+# Get customer info (V3)
+curl -X GET "http://localhost:8080/doct-c360-api/v3/customer_info/{uuid}" \
+  -H "accept: application/hal+json"
 
-# Follow logs
-kubectl logs deployment/[service-name] -f
+# Get customer transaction aggregates
+curl -X GET "http://localhost:8080/doct-c360-api/v1/customer_transaction_aggregates/{uuid}?startDate=2024-01-01&endDate=2024-12-31" \
+  -H "accept: application/hal+json"
 
-# Query centralized logs (ELK/Splunk)
-# Example: Errors in last hour
-index=springboot-prod ERROR | timechart count
+# Get catalog metadata
+curl -X GET "http://localhost:8080/doct-c360-api/v3/catalog/all" \
+  -H "accept: application/hal+json"
 ```
 
-## 5. Troubleshooting Guide
+## 6. API Documentation
 
-### 5.1 Service Won't Start
-**Symptoms**: Application fails to start, port already in use, dependency errors
+### 6.1 API Versions
+- **V3 APIs:** Latest version with enhanced schemas
+- **V2 APIs:** Previous version (maintains backward compatibility)
+- **V1 APIs:** Legacy endpoints (deprecated but supported)
 
-**Diagnosis Steps**:
-1. Check logs: `journalctl -u [service-name]`
-2. Verify port availability: `netstat -tulpn | grep :8080`
-3. Check disk space: `df -h`
-4. Validate configuration: `java -jar app.jar --spring.config.location=...`
+### 6.2 Key Endpoints
 
-**Resolution**:
-```bash
-# Kill process on occupied port
-sudo lsof -ti:8080 | xargs kill -9
+| Endpoint | Method | Description | Version |
+|----------|--------|-------------|---------|
+| `/v3/customer_info/{uuid}` | GET | Complete customer profile | V3 |
+| `/v3/catalog/all` | GET | Catalog metadata | V3 |
+| `/v2/customer_info/{uuid}` | GET | Customer profile (V2 schema) | V2 |
+| `/v1/customer_transaction_aggregates/{uuid}` | GET | Transaction aggregates with date filters | V1 |
+| `/v1/discovery/CDPSegments` | GET | Customer Data Platform segments | V1 |
+| `/v1/bnc/{uuid}` | GET | BNC customer transaction data | V1 |
 
-# Clear temp files
-rm -rf /tmp/*
+### 6.3 Response Formats
+- **Content-Type:** `application/hal+json`
+- **Schema:** Defined in OpenAPI specification (`api-docs.json`)
+- **Error Responses:** Standard HTTP status codes
 
-# Restart with debug
-java -Xdebug -Xrunjdwp:server=y,transport=dt_socket,address=5005,suspend=n \
-     -jar application.jar
-```
+## 7. Monitoring & Observability
 
-### 5.2 High Memory Usage
-**Symptoms**: OOM errors, slow response, frequent GC
-
-**Diagnosis**:
-```bash
-# Check JVM memory
-jstat -gc [pid] 1000
-
-# Heap dump (if enabled)
-jmap -dump:live,format=b,file=heap.hprof [pid]
-
-# Analyze with jvisualvm or Eclipse MAT
-```
-
-**Resolution**:
-1. Increase heap: `-Xmx4g -Xms4g`
-2. Adjust GC: `-XX:+UseG1GC -XX:MaxGCPauseMillis=200`
-3. Restart with new settings
-4. Profile for memory leaks
-
-### 5.3 Database Connection Issues
-**Symptoms**: Connection pool exhausted, slow queries, timeout errors
-
-**Diagnosis**:
-```bash
-# Check connection pool metrics
-curl http://localhost:8080/actuator/metrics/hikaricp.connections.active
-
-# Database connections
-SELECT * FROM pg_stat_activity WHERE application_name = '[app-name]';
-```
-
-**Resolution**:
+### 7.1 Logging Configuration
 ```yaml
-# Update application.yml
-spring:
-  datasource:
-    hikari:
-      maximum-pool-size: 20
-      connection-timeout: 30000
-      idle-timeout: 600000
-      max-lifetime: 1800000
+# Log levels (from application.yaml)
+logging.level:
+  ROOT: INFO
+  io.github.jhipster: INFO
+  com.albertsons.c360.api: INFO
 ```
 
-### 5.4 Circuit Breaker Tripped
-**Symptoms**: Fail-fast errors, degraded functionality
+### 7.2 Metrics Collection
+- **Framework:** Micrometer with Prometheus registry
+- **Endpoints:** `/actuator/prometheus`
+- **Integration:** Compatible with Prometheus/Grafana
 
-**Diagnosis**:
+### 7.3 Distributed Tracing
+- **Framework:** Spring Cloud Sleuth
+- **Sampling Rate:** 100% (configurable)
+- **Trace Export:** Integrated with monitoring system
+
+## 8. Performance & Scaling
+
+### 8.1 Caching Strategy
+- **Cache Provider:** Redis Cluster
+- **TTL Configuration:** 6,000,000 ms (~100 minutes)
+- **Cache Null Values:** Disabled
+- **Key Prefix:** Enabled
+- **SSL:** Enabled for secure connections
+
+### 8.2 Database Optimization
+- **MongoDB Read Preference:** Primary
+- **Connection Pool:** Configured via MongoDB URI
+- **Indexing:** Ensure proper indexes on frequently queried fields
+
+### 8.3 Scaling Considerations
+- **Horizontal Scaling:** Stateless service, can scale horizontally
+- **Session Management:** No session state stored locally
+- **Cache Sharing:** Redis cluster enables cache sharing across instances
+
+## 9. Troubleshooting
+
+### 9.1 Common Issues
+
+#### Issue 1: MongoDB Connection Failure
+**Symptoms:**
+- Application fails to start
+- `MongoTimeoutException` in logs
+
+**Resolution:**
+1. Verify MongoDB URL in Azure Key Vault
+2. Check network connectivity to MongoDB cluster
+3. Validate authentication credentials
+
+#### Issue 2: Redis Cache Connection Failure
+**Symptoms:**
+- Cache operations failing
+- `RedisConnectionException` in logs
+
+**Resolution:**
+1. Verify Redis cluster configuration
+2. Check SSL certificate validity
+3. Validate Redis access key in Key Vault
+
+#### Issue 3: API Response Time Degradation
+**Symptoms:**
+- Increased latency in API responses
+- Timeout errors
+
+**Resolution:**
+1. Check Redis cache hit/miss ratio
+2. Monitor MongoDB query performance
+3. Review application logs for slow operations
+
+### 9.2 Diagnostic Commands
 ```bash
-# Check circuit breaker state
+# Check application logs
+kubectl logs deployment/doct-c360-api -f
+
+# Check health status
 curl http://localhost:8080/actuator/health
-curl http://localhost:8080/actuator/hystrix.stream
+
+# Check thread dump
+curl http://localhost:8080/actuator/threaddump
+
+# Check environment
+curl http://localhost:8080/actuator/env
 ```
 
-**Resolution**:
-1. Identify failing dependency
-2. Check dependent service health
-3. Temporarily increase timeout:
-```yaml
-hystrix:
-  command:
-    default:
-      execution:
-        timeout:
-          enabled: false
-      circuitBreaker:
-        requestVolumeThreshold: 20
-```
+## 10. Disaster Recovery
 
-## 6. Maintenance Procedures
+### 10.1 Backup Procedures
+- **Configuration:** Backed up in Azure Key Vault
+- **Application Code:** Version controlled in Git repository
+- **Database:** MongoDB backup procedures should be established separately
 
-### 6.1 Database Migration
-```bash
-# Dry run
-./migrate.sh --env prod --dry-run
+### 10.2 Recovery Steps
+1. **Service Failure:**
+   - Restart affected pod/container
+   - Check dependency services (MongoDB, Redis)
+   - Verify configuration from Key Vault
 
-# Execute migration
-./migrate.sh --env prod --confirm
+2. **Data Corruption:**
+   - Restore from MongoDB backups
+   - Clear Redis cache if necessary
+   - Restart application
 
-# Verify
-./verify-migration.sh --version [migration-version]
-```
+## 11. Security
 
-### 6.2 Certificate Renewal
-```bash
-# Check expiry
-openssl x509 -in cert.pem -noout -dates
+### 11.1 Authentication & Authorization
+- **External Dependencies:** Assumes API gateway handles authentication
+- **Service-to-Service:** Secure communication via SSL/TLS
 
-# Deploy new certificate
-kubectl create secret tls app-tls --cert=new-cert.pem --key=new-key.pem
+### 11.2 Secret Management
+- **Primary Store:** Azure Key Vault
+- **Rotation Policy:** Regular rotation of Redis access keys
+- **Access Control:** Role-based access to Key Vault secrets
 
-# Rolling restart
-kubectl rollout restart deployment/[service-name]
-```
+### 11.3 Network Security
+- **Internal Service:** Should not be exposed directly to internet
+- **API Gateway:** All traffic should route through API gateway
+- **SSL/TLS:** Enabled for Redis connections
 
-### 6.3 Configuration Updates
-```bash
-# Update config map
-kubectl create configmap app-config --from-file=application.yml -o yaml --dry-run | \
-kubectl apply -f -
+## 12. Maintenance & Updates
 
-# Refresh without restart (if Spring Cloud Config)
-POST http://localhost:8080/actuator/refresh
-```
+### 12.1 Version Upgrades
+1. **Backward Compatibility:** Ensure API versioning maintains compatibility
+2. **Database Migration:** Review schema changes between versions
+3. **Rolling Deployment:** Deploy new version with zero downtime
 
-## 7. Disaster Recovery
-
-### 7.1 Service Restoration
-```bash
-# Scale up
-kubectl scale deployment/[service-name] --replicas=3
-
-# Drain and restart problematic nodes
-kubectl drain [node-name] --ignore-daemonsets
-
-# Restore from backup (if needed)
-./restore-backup.sh --type database --timestamp [backup-time]
-```
-
-### 7.2 Data Corruption Recovery
-1. Stop service: `kubectl scale deployment/[service-name] --replicas=0`
-2. Restore last known good backup
-3. Run data integrity checks
-4. Start service with reduced capacity
-5. Monitor closely
-
-## 8. Performance Tuning
-
-### 8.1 JVM Optimization
-```bash
-# Production recommended settings
-java -server \
-     -Xms2g -Xmx2g \
-     -XX:+UseG1GC \
-     -XX:MaxGCPauseMillis=200 \
-     -XX:InitiatingHeapOccupancyPercent=45 \
-     -XX:+UseStringDeduplication \
-     -jar application.jar
-```
-
-### 8.2 Spring Boot Tuning
-```yaml
-# application-prod.yml
-server:
-  tomcat:
-    max-threads: 200
-    min-spare-threads: 10
-    max-connections: 10000
-    connection-timeout: 5000
-    
-spring:
-  servlet:
-    multipart:
-      max-file-size: 10MB
-      max-request-size: 10MB
-```
-
-## 9. Security Procedures
-
-### 9.1 Vulnerability Scan
-```bash
-# Dependency check
-./mvnw dependency-check:check
-# or
-./gradlew dependencyCheckAnalyze
-
-# Container scanning
-trivy image [image-name]:[tag]
-
-# Update dependencies
-./mvnw versions:use-latest-releases
-```
-
-### 9.2 Secret Rotation
-1. Generate new secrets
-2. Update Kubernetes secrets or vault
-3. Rolling restart of pods
-4. Verify old secrets are invalidated
-
-## 10. Appendix
-
-### 10.1 Useful Commands
-```bash
-# Get pod status
-kubectl get pods -l app=[service-name]
-
-# Enter container
-kubectl exec -it [pod-name] -- /bin/bash
-
-# Describe service issues
-kubectl describe pod [pod-name]
-
-# Check events
-kubectl get events --sort-by=.metadata.creationTimestamp
-```
-
-### 10.2 Contact Escalation
-1. **Level 1**: On-call Engineer (24/7)
-2. **Level 2**: Senior Engineer (Business hours)
-3. **Level 3**: Architecture Team
-4. **Level 4**: Vendor Support (if applicable)
-
-### 10.3 Post-Incident Report Template
-```
-# Incident Report: [Date]
-## Summary
-## Timeline
-## Root Cause
-## Impact
-## Resolution
-## Action Items
-## Prevention Measures
-```
+### 12.2 Scheduled Maintenance
+- **Redis Cache Clearance:** May be required after data model changes
+- **MongoDB Index Optimization:** Regular index maintenance
+- **Log Rotation:** Configured at infrastructure level
 
 ---
 
-**Last Updated**: [Date]
-**Maintainer**: [Team Name]
-**Review Schedule**: Bi-weekly
+## Appendix
+
+### A. Dependencies Matrix
+| Component | Version | Purpose |
+|-----------|---------|---------|
+| Spring Boot | 3.5.3 | Application framework |
+| Spring Data MongoDB | 3.5.3 | MongoDB integration |
+| Spring Data Redis | 3.5.3 | Redis cache integration |
+| Spring WebFlux | 3.5.3 | Reactive web layer |
+| OpenAPI | 2.8.13 | API documentation |
+| Lettuce | Latest | Redis client |
+| Azure Key Vault | 2.2.1 | Secret management |
+
+### B. Performance Benchmarks
+- **Expected Latency:** < 100ms for cache hits
+- **Throughput:** 1000+ requests/second per instance
+- **Cache Hit Ratio:** Target > 90%
+
+### C. Contact Information
+- **Support Team:** C360 Support Team
+- **Email:** Customerc360@albertsons.com
+- **URL:** https://albertsons.com
+
+---
+
+**Last Updated:** December 1, 2025  
+**Document Version:** 1.0
