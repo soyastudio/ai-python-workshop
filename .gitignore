@@ -24,4 +24,14 @@ atlassian-ide-plugin.xml
 sonar-project.properties
 test-output/
 
+# Python related
+.mypy_cache/
+.dmypy.json
+dmypy.json
+
+# Pyre type checker
+.pyre/
+
+.venv/
+
 
