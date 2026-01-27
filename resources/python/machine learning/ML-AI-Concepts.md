@@ -1,0 +1,70 @@
+# Essential Machine Learning and AI Concepts
+
+[Essential Machine Learning and AI Concepts Animated ](https://www.google.com/search?q=essential+machine+learning+and+ai+concepts+animated&oq=Escential+Machine+Learning+and+A&gs_lcrp=EgZjaHJvbWUqCAgCEAAYFhgeMgYIABBFGDkyCAgBEAAYFhgeMggIAhAAGBYYHjIICAMQABgWGB4yBwgEEAAY7wXSAQoyNjI0OWowajE1qAIIsAIB8QVRUKtIzB4OZfEFUVCrSMweDmU&sourceid=chrome&ie=UTF-8#fpstate=ive&vld=cid:a94c3685,vid:PcbuKRNtCUc,st:0)
+
+- Variance
+- Unsupervised Learning: Clustering
+- Time Series Analysis
+- Transfer Learning
+- Gradient Descent
+- Stochastic Gradient Descent (SGD)
+- Sentiment Analysis
+- Regression
+- Regularization
+- Logistic Regression
+- Linear Regression
+- Reinforcement Learning
+- Decision Tree
+- Random Forest
+- Truncation
+- Principal Component Analysis
+- Pre-training
+- Object Detection
+- Oversampling
+- Outliers
+- Overfitting
+- One-hot encoding
+- Nearest Neighbors Search
+- Normal Distribution
+- Normalization
+- Natural Language Processing (NLP)
+- Matrix Factorization
+- Markov Chain
+- Model Selection
+- Model Evaluation
+- Jupyter Notebook
+- Knowledge Transfer
+- Knowledge Graphs
+- Joint Probability
+- Inductive Bias
+- Information Extraction
+- Inference in Machine Learning
+- Imbalanced Data
+- Human-in-the-Loop
+- Graphical Processing Unit (GPU)
+- Vanishing Gradient
+- Generalization in Machine Learning
+- Generative Adversarial Networks (GANs)
+- Ensemble Methods in Machine Learning
+- Multiclass Classification
+- Data Preprocessing
+- Regression Analysis
+- Sigmoid Function
+- Evolutionary Algorithms
+- Language Models
+- backpropagation
+- Bagging
+- Dense Vectors
+- Feature Engineering
+- Support Vector Machine (SVM)
+- Cross-Validation
+- Loss Function
+- P-Value
+- T-Test
+- Cosine Similarity
+- Softmax Function
+- Bayes' Theorem
+- Tanh Function
+- 
+
+
