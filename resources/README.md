@@ -47,6 +47,7 @@
 - [Spring AI](https://spring.io/projects/spring-ai)
 - [Camel AI](https://camel.apache.org/components/4.14.x/ai-summary.html)
 - [Embabel](https://github.com/embabel)
+- [Wanaku MCP Router](https://github.com/wanaku-ai/wanaku)
 
 
 ### Github
@@ -64,6 +65,7 @@
 - [RAGFlow](https://github.com/infiniflow/ragflow)
 - [LangChain for Java](https://github.com/langchain4j/langchain4j)
 - [ragflow4j](https://github.com/aaronshan/ragflow4j)
+- [arvindand](https://github.com/arvindand?tab=repositories)
 
 
 ### Youtube
